@@ -1,18 +1,15 @@
-# Get the Data
-
-tuition_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_cost.csv')
-
-tuition_income <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_income.csv') 
-
-salary_potential <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/salary_potential.csv')
-
-historical_tuition <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/historical_tuition.csv')
-
-diversity_school <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/diversity_school.csv')
-
+# Load libraries
 library(lmer)
 library(lme4)
 library(tidyr)
+
+# Get the Data
+tuition_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_cost.csv')
+tuition_income <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_income.csv') 
+salary_potential <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/salary_potential.csv')
+historical_tuition <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/historical_tuition.csv')
+diversity_school <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/diversity_school.csv')
+
 
 # explore
 colnames(tuition_cost)
@@ -37,7 +34,6 @@ ggplot(data = ., aes(x = yr, y = tuition_cost, group_by(type), color = type) ) +
   ylab('Tution ($ inflation adjusted)') + 
   scale_x_continuous(breaks = seq(1985, 2015, 5))
   
-# What's the relationship b/w tuition and diverstiy?
 
 # Calculate % minority & select variables 
 minority_enrollment = diversity_school %>%
@@ -55,6 +51,7 @@ dat = dat %>% filter(type == 'Public' | type == 'Private') %>%
   mutate(public_dummy = ifelse(type=='Public',1,0))
 
 
+# What's the relationship b/w tuition and diverstiy?
 
 # Relationship b/w tuition and career pay 
 dat %>% filter(type == 'Private') %>% 
@@ -84,14 +81,6 @@ p3 = p1 / p2
 ggsave(filename = '/Users/sifre002/Box/sifre002/7_Rscripts/TidyTuesday/20200310-Tuition-Diversity/tuition_increase.jpg', p1)
 ggsave(filename = '/Users/sifre002/Box/sifre002/7_Rscripts/TidyTuesday/20200310-Tuition-Diversity/combined_fig.jpg', p3)
 
-# dat %>% 
-#   ggplot(data = ., aes(x = in_state_tuition, y = pct_minority, group_by(type), color = type)) +
-#   geom_point() +
-#   xlab('Tuition') 
-# 
-# ggplot(data = dat, aes(x = (in_state_tuition), y = pct_minority)) +
-#   geom_point() +
-#   xlab('Tuition') 
 
 
 lm.0 = lm(data = dat, early_career_pay ~ 1)
@@ -106,6 +95,13 @@ tuition_beta*5000 # For every 5k increase in tuition, salary expectation increas
 interaction_beta = 4.384e-01 # for public schools, each 5k increase in tuition is associated with an even bigger bump
 
 
+
+
+
+
+
+
+
 # MISC - to follow up with 
 # Relationship b/w tuition and minority 
 # dat %>% filter(type == 'Private') %>% 
@@ -117,15 +113,23 @@ interaction_beta = 4.384e-01 # for public schools, each 5k increase in tuition i
 #   ggplot(data = ., aes(x = in_state_tuition, y = pct_minority)) +
 #   geom_point() +
 #   xlab('Tuition') 
+# dat %>% 
+#   ggplot(data = ., aes(x = in_state_tuition, y = pct_minority, group_by(type), color = type)) +
+#   geom_point() +
+#   xlab('Tuition') 
+# 
+# ggplot(data = dat, aes(x = (in_state_tuition), y = pct_minority)) +
+#   geom_point() +
+#   xlab('Tuition') 
 
 
 # explore distributions of interest 
-ggplot(data = dat, aes(x = pct_minority)) + 
-  geom_histogram(color = 'black')
-
-ggplot(data = dat, aes(x = in_state_tuition)) + 
-  geom_histogram(color = 'black') +
-  facet_grid(~type)
-
-ggplot(data = dat, (aes(x = early_career_pay))) + 
-  geom_histogram(color = 'black')
+# ggplot(data = dat, aes(x = pct_minority)) + 
+#   geom_histogram(color = 'black')
+# 
+# ggplot(data = dat, aes(x = in_state_tuition)) + 
+#   geom_histogram(color = 'black') +
+#   facet_grid(~type)
+# 
+# ggplot(data = dat, (aes(x = early_career_pay))) + 
+#   geom_histogram(color = 'black')
