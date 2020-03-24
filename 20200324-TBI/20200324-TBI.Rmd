@@ -75,7 +75,7 @@ tbi_age %>%
 ```
 The following age-related trends can be seen:  
 - Young people (below 24) are more likely to have a TBI caused by being <b>unintentionally struck or by against an object</b>.  
-- <b>Unintentional falls</b> account for more TBIs among toddlers (0-4) and the elderly (75#).  
+- <b>Unintentional falls</b> account for more TBIs among toddlers (0-4) and the elderly (75+).  
 - <b>Assults</b> account for more TBIs among yound adults (15-24), and adults (25-54)
 
 # Plot trajectory of TBI rates for cases where we saw an age-related trend
