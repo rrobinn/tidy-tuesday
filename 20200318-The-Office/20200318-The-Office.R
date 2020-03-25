@@ -36,7 +36,7 @@ tidy.token.schrute = token.schrute %>%
 tidy.token.schrute %>% # 169,835 observations
   dplyr::count(word, sort = TRUE)
 
-tidy.token.schrute %>%
+p1 = tidy.token.schrute %>%
   dplyr::count(word, sort = TRUE) %>%
   dplyr::filter(n > 400) %>%
   dplyr::mutate(word = stats::reorder(word, n)) %>%
@@ -45,7 +45,7 @@ tidy.token.schrute %>%
   ggplot2::xlab(NULL) +
   ggplot2::coord_flip() +
   ggplot2::theme_minimal()
-
+ggsave(filename ='/Users/sifre002/Box/sifre002/7_Rscripts/TidyTuesday/20200318-The-Office/Most_used_words.pdf', plot = p1, scale = .6)
 
 ###############################
 # Sentiments
