@@ -2,6 +2,7 @@
 library(lmer)
 library(lme4)
 library(tidyr)
+library(patchwork)
 
 # Get the Data
 tuition_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_cost.csv')
