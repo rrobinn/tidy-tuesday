@@ -1,0 +1,92 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# Inspiration
+https://github.com/Ischi94/BeerProduction
+```
+
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+brewing_materials <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/brewing_materials.csv')
+beer_taxed <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/beer_taxed.csv')
+brewer_size <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/brewer_size.csv')
+beer_states <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/beer_states.csv')
+```
+
+# How was growth changed over the past 10 years for Microbreweries, Regional Breweries, and Large Breweries?
+```{r}
+size = brewer_size %>% 
+  mutate(brewer_size = case_when(brewer_size %in% c("Zero Barrels",
+                                                    "Under 1 Barrel",
+                                                    "1 to 1,000 Barrels",
+                                                    "1,001 to 7,500 Barrels",
+                                                    "7,501 to 15,000 Barrels") ~ "Microbreweries",
+                                 brewer_size %in% c("15,001 to 30,000 Barrels",
+                                                    "30,001 to 60,000 Barrels",
+                                                    "60,001 to 100,000 Barrels",
+                                                    "100,001 to 500,000 Barrels",
+                                                    "500,001 to 1,000,000 Barrels",
+                                                    "1,000,001 to 1,999,999 Barrels",
+                                                    "1,000,001 to 6,000,000 Barrels",
+                                                    "1,000,000 to 6,000,000 Barrels",
+                                                    "2,000,000 to 6,000,000 Barrels") ~ "Regional Breweries",
+                                 brewer_size %in% c("6,000,001 Barrels and Over") ~ "Large Breweries")) %>%
+  filter(!is.na(brewer_size)) %>%
+  group_by(year, brewer_size) %>%
+  summarise(total_barrels = sum(total_barrels, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(growth_barrels = (total_barrels - lag(total_barrels)) / lag(total_barrels) ) %>%
+  mutate(factor(brewer_size, levels = c("Microbreweries", "Regional Breweries", "Large Breweries")))
+
+
+ggplot(data = size, aes(x=as.integer(year), y = growth_barrels, color = brewer_size)) +
+  geom_line() +
+  geom_point(aes(group= seq_along(year))) +
+  scale_x_continuous(breaks = c(2006:2019)) + 
+  geom_text(aes(label = scales::percent(growth_barrels,.1)),
+            size = 3.4, nudge_y = .03) +
+  labs(title = 'Yearly Growth of Beer Produced (measured in barrels)', x = 'Year', y = 'Growth (%)', size = 14) +
+  theme_bw() +  
+  theme(legend.title= element_blank(),legend.position = c(.8,.8),
+        legend.background=element_rect(color= 'black',linetype='solid'), text = element_text(size=14)) +  transition_reveal(year) 
+
+
+
+```
+
+# Which states produced the most beer last year? 
+```{r}
+head(beer_states)
+
+state = beer_states %>%
+  filter(state!='total') %>%
+  filter(year == 2019) %>%
+  group_by(state) %>%
+  summarise(total_barrels = sum(barrels, na.rm = T)) %>%
+  ungroup() 
+
+require(scales)
+p1 = state %>%
+  mutate(state = as.factor(state)) %>%
+  mutate(state = reorder(state, total_barrels)) %>%
+  mutate(top5 = ifelse(total_barrels >= quantile(total_barrels,.9),1,0),
+         top5 = as.factor(top5)) %>%
+  filter(total_barrels >= quantile(total_barrels, .4)) %>%
+  ggplot(aes(x=state, y=total_barrels, fill = top5)) + 
+  geom_col() + 
+  coord_flip() + 
+  scale_y_continuous(labels=comma) + 
+  labs(title = 'Barrels of Beer Produced in 2019 \n (Top 20 States)', x = 'State', y = ' ', size = 14,
+       caption="Data: Alcohol and Tobacco Tax and Trade Bureau (TTB) \n Highest producing states are highlighted in blue \n Visualization by:   @SifreRobin") +
+  theme_light() + 
+  theme(legend.position = 'none')
+
+ggsave(p1, filename = '/Users/sifre002/Box/sifre002/7_Rscripts/TidyTuesday/20200401_Beer/states.png', width=4.5,height=4.5)
+
+```
+
