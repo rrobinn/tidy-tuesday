@@ -1,0 +1,228 @@
+---
+title: "Rap Artists"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+---
+
+Earlier this year, BBC Music asked more than 100 critics, artists, and other music industry folks from 15 countries for their five favorite hip-hop tracks. Then they broke down the results of the poll into one definitive list. But BBC Music didn’t just publish a best-of list, they also published the complete poll results and a description of the simple algorithm they ranked the songs with. - Simon Jockers  
+
+We awarded 10 points for first ranked track, eight points for second ranked track, and so on down to two points for fifth place. The song with the most points won. We split ties by the total number of votes: songs with more votes ranked higher. Any ties remaining after this were split by first place votes, followed by second place votes and so on: songs with more critics placing them at higher up the lists up ranked higher. -- BBC Music
+
+
+```{r setup, echo=FALSE, cache=FALSE, warning=FALSE,message=FALSE}
+library(knitr)
+library(rmdformats)
+library(rmarkdown)
+library(tidyverse)
+library(ggthemes)
+library(spotifyr)
+library(patchwork)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r}
+# Get the Data
+polls <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-14/polls.csv')
+rankings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-14/rankings.csv')
+
+glimpse(rankings)
+```
+
+
+## Which eras are represented most in Critic's Top 5 Picks?
+First, let's see how much data we have for tracks as a function of year. 
+```{r}
+polls %>%
+  group_by(year) %>%
+  summarize(n_reviews = n ()) %>%
+  ggplot( aes(x=year,y=n_reviews)) + 
+  geom_col() +
+  labs(x='Year', y='Number of Reviews')
+```
+It seems reasonable to create 5-year bins
+
+```{r}
+polls2=polls %>%
+  # Bin years
+  mutate(years_bin=cut(year, breaks=seq(1980,2020,5), labels=c('1980-1985', '1986-1990', '1991-1995', '1996-2000', '2001-2005', '2006-2010', '2011-2015', '2016-2020'),include.lowest = TRUE),
+         years_bin=factor(years_bin, ordered =TRUE, c('1980-1985', '1986-1990', '1991-1995', '1996-2000', '2001-2005', '2006-2010', '2011-2015', '2016-2020')),
+         forcats::fct_explicit_na(f=years_bin, na_level='1980-1985')) %>%
+  select(rank,title,artist,year, years_bin=`forcats::fct_explicit_na(f = years_bin, na_level = "1980-1985")`)
+
+nineties = polls2 %>%
+  group_by(years_bin) %>%
+  summarize(n_albums = n ()) %>%
+    ggplot( aes(x=years_bin,y=n_albums)) + 
+    geom_col(color='black',fill='indianred') + 
+    coord_flip()+
+    labs(x='Year', y='Number of Reviews', title='Nineties Nostalgia',caption='BBC Music asked more than 100 critics, artists, and music industry folks from 15 countries. \n Tracks from the 90s were chosen the most frequently  \n Visualization by:   @SifreRobin') +
+    theme_bw() + 
+    theme(legend.position='none', axis.text.x=element_text(size=12), axis.title.x = element_text(size=14, face = 'bold'),
+          axis.text.y=element_text(size=12), axis.title.y=element_text(size=14, face='bold')) 
+
+nineties
+
+```
+
+We can see that the 90's are over-represented here. #Nostalgia.
+
+
+# Which tracks were selected the most?
+```{r}
+polls2 %>%
+  group_by(title,artist) %>%
+  summarise(n_reviews=n()) %>%
+  ungroup(title,artist) %>%
+  mutate(title=as.factor(title),
+         title=reorder(title,n_reviews)) %>%
+  ggplot(aes(x=title,y=n_reviews)) + 
+  geom_col() +
+  theme(axis.text.x = element_blank(), axis.ticks.x=element_blank()) +
+  labs(x='', y='Number of times a track is mentioned')
+```
+
+A number of tracks are only mentioned once. Let's focus on which tracks were mentioned at least 5 times.
+
+```{r mostmentions, cache=TRUE}
+# Taking actual rank into account   
+rankings2 = rankings %>%
+    # Bin years
+  mutate(years_bin=cut(year, breaks=seq(1980,2020,5), labels=c('1980-1985', '1986-1990', '1991-1995', '1996-2000', '2001-2005', '2006-2010', '2011-2015', '2016-2020'),include.lowest = TRUE),
+         years_bin=factor(years_bin, ordered =TRUE, c('1980-1985', '1986-1990', '1991-1995', '1996-2000', '2001-2005', '2006-2010', '2011-2015', '2016-2020')),
+         forcats::fct_explicit_na(f=years_bin, na_level='1980-1985')) %>%
+  select(points,title,artist,year, years_bin=`forcats::fct_explicit_na(f = years_bin, na_level = "1980-1985")`)
+
+
+top5mentions_plot = polls2 %>%
+  group_by(title,artist) %>%
+  summarise(n_reviews=n()) %>%
+  ungroup(title,artist) %>%
+  filter(n_reviews>=5) %>%
+  mutate(title=as.factor(title),
+         title=reorder(title,n_reviews)) %>%
+  ggplot(aes(x=title, y=n_reviews)) +
+    geom_col() +
+  coord_flip() +
+  labs(x='', y='# of Times a Track is Mentioned in Top 5', size= 20, caption='BBC Music asked more than 100 critics, artists, and music industry folks from 15 countries. \n Here are the tracks that were mentioned the most  \n Visualization by:   @SifreRobin') + 
+   theme_light() 
+
+top5mentions_plot
+
+rankings2 %>%
+  group_by(years_bin) %>%
+  filter(points==max(points)) %>%
+  ungroup()
+
+```
+Note: Did not take actual rank into account, since these were not ranked by decade. 
+
+
+# What were the top tracks across time??
+```{r}
+
+polls2 %>%
+  group_by(title,artist,years_bin) %>%
+  summarise(n_reviews=n()) %>%
+  ungroup() %>%
+  group_by(years_bin) %>%
+  filter(n_reviews==max(n_reviews)) 
+
+
+# Top tracks
+top_tracks_yr = rankings2 %>%
+  group_by(years_bin) %>%
+  filter(points==max(points)) %>%
+  ungroup()
+
+```
+
+
+Spotify Stuff
+# How do features of the top-rated tracks change over time?
+```{r features, cache=TRUE}
+id = 'ff20b40e38cd45659b8bb96b9940e888'
+secret='8f5198752de34c8fa5c4381f7bd43a42'
+Sys.setenv(SPOTIFY_CLIENT_ID = id)
+Sys.setenv(SPOTIFY_CLIENT_SECRET = secret)
+access_token <- get_spotify_access_token()
+
+# The Message - Grandmaster flash & the furious 5 (80-85)
+message=get_track_audio_features('5DuTNKFEjJIySAyJH1yNDU')
+
+# Fight the power (86-90)
+fight=get_track_audio_features('1yo16b3u0lptm6Cs7lx4AD')
+
+# Juicy (1991-1995)
+juicy=get_track_audio_features('2b7FqlHc3JrzlYtGEkzq22')
+
+# Bob outkast (96-2000)
+bob=get_track_audio_features('3WibbMr6canxRJXhNtAvLU')
+
+# Lose yourself (2000-05)
+loseyourself=get_track_audio_features('77Ft1RJngppZlq59B6uP0z')
+
+# Runaway 2006-2010
+runaway=get_track_audio_features('3DK6m7It6Pw857FcQftMds')
+
+# alright
+alright=get_track_audio_features('3iVcZ5G6tvkXZkZKlMpIUs')
+
+# Bodak Yellow
+bodak=get_track_audio_features('6KBYefIoo7KydImq1uUQlL')
+
+top_tracks_yr=top_tracks_yr %>%
+  arrange(years_bin)
+top_tracks_yr=top_tracks_yr[1:8,]
+
+
+plot_data = rbind(message,fight,juicy,bob,loseyourself,runaway,alright,bodak)
+plot_data=cbind(plot_data,top_tracks_yr)
+
+
+# Speechiness
+speechiness_plot = plot_data %>%
+  mutate(full_title = paste(artist, title, sep = ': ')) %>%
+  ggplot(aes(x=years_bin, y= speechiness, color=full_title)) +
+  geom_col() +
+  coord_flip() +
+  expand_limits(y=c(0, .62))+
+  geom_text(aes(label=full_title, hjust=-.025)) + 
+  labs(x='', y='Speechiness', caption='Speechiness of the top-rated hip-hop tracks from Spotify API \n Visualization by @SifreRobin') +
+  theme_solarized(light = FALSE) + 
+  theme(legend.position='none', axis.text  = element_text(colour = 'white'))
+
+# Instrumentalness
+instrumentalness_plot=plot_data %>%
+  mutate(full_title = paste(artist, title, sep = ': ')) %>%
+  ggplot(aes(x=years_bin, y= tempo, color=full_title)) +
+  geom_col() +
+  coord_flip() +
+  expand_limits(y=c(0, 270))+
+  geom_text(aes(label=full_title, hjust=-.025)) + 
+  labs(x='', y='Instrumentalness', caption='Instrumentalness of the top-rated hip-hop tracks from Spotify API \n Visualization by @SifreRobin') +
+  theme_solarized(light = FALSE) + 
+  theme(legend.position='none', axis.text  = element_text(colour = 'white'))
+
+speechiness_plot
+
+instrumentalness_plot
+
+
+
+```
+
+
+
